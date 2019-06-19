@@ -1,13 +1,11 @@
-#Binary CNN Classification on Video Images
-
-
+# Binary CNN Classification on Video Images
 This program trains a Binary Classifier on classifying images from video files.
 The classifier is based on CNN with 3 Convolution layers and two Dense layers.
 
-##Categories
+## Categories
 The two categories used in the program call 'on' and 'not'
 
-##Running the program
+## Running the program
 1. To run the program, put the videos of the two categories in the project root folder.
 2. To add videos, change the video list in 212 and 213 to your video names (you can skip this step in the future if you just 
 wish to train the classifier, more details in step #3)
