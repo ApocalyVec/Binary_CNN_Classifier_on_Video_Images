@@ -9,10 +9,14 @@ from keras.models import load_model
 from keras.models import save_model
 
 from keras_preprocessing.image import ImageDataGenerator
+from keras.utils import plot_model
+
 from PIL import Image
 import tensorflow
 import cv2
 import numpy as np
+import pydot
+import matplotlib.pyplot as plt
 
 # file related imports
 import os, os.path
@@ -30,35 +34,48 @@ not_category_name = 'not'
 
 trained_model_folder_name = 'trained_model'
 
-def ThumouseFrameCapture(path: str, category:str):
+frame_reduce_num = 1
+
+
+def ThumouseFrameCapture(path: str, category: str):
     global not_frame_path, on_frame_path
+    global frame_reduce_num
 
     vidcap = cv2.VideoCapture(path)
     # convert the video to series of images
-    count = 0
+    frame_count = 0
+    img_count = 0
     success = 1
     print('Processing frames: file = ' + path + ', Category = ' + category)
 
     if category == 'on':
         while success:
             success, img = vidcap.read()
-            cv2.imwrite(os.path.join(on_frame_path, (path + "%d.jpg" % count)), img)  # save to ON frame path
 
-            print('     created ' + path + "%d.jpg" % count)
+            if frame_count % frame_reduce_num == 0:  # reduce the number of frames by steping
+                img_fn = (path.replace('/', '_').replace("\\", "_") + '_' + "%d.jpg" % frame_count)
+                cv2.imwrite(os.path.join(on_frame_path, img_fn), img)  # save to ON frame path
+                print('     created ' + img_fn)
+                img_count += 1
+
             if cv2.waitKey(10) == 27:
                 break
-            count += 1
+            frame_count += 1
     elif category == 'not':
         while success:
             success, img = vidcap.read()
-            cv2.imwrite(os.path.join(not_frame_path, (path + '_' + "%d.jpg" % count)), img)  # save to NOT frame path
 
-            print('     created ' + path + "%d.jpg" % count)
+            if frame_count % frame_reduce_num == 0:  # reduce the number of frames by steping
+                img_fn = (path.replace('/', '_').replace("\\", "_") + '_' + "%d.jpg" % frame_count)
+                cv2.imwrite(os.path.join(not_frame_path, img_fn), img)  # save to NOT frame path
+                print('     created ' + img_fn)
+                img_count += 1
+
             if cv2.waitKey(10) == 27:
                 break
-            count += 1
+            frame_count += 1
     else:
-        raise('Invalid Category ' + category, 'Category must be either On or Not')
+        raise ('Invalid Category ' + category, 'Category must be either On or Not')
 
     print('     Validating frame images')
     for fn in os.listdir(on_frame_path):
@@ -120,6 +137,10 @@ def separate_train_test(path: str, category: str, test_percentage: float):
 
     # copy the test files
     print('Total file number: ' + str(file_num))
+
+    if file_num == 0:
+        raise Exception('Not file found in: ' + str(path))
+
     print('transferring test files')
     while count <= test_num:
         target_test_fn = random.choice(os.listdir(path))
@@ -198,17 +219,25 @@ def main(isConvertFrames: bool, isCreateTrainTest: bool, on_videos=[], not_video
 
     classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-    classifier.fit_generator(training_set,
-                             steps_per_epoch=len(training_set.filenames),
-                             epochs=5,
-                             validation_data=test_set,
-                             validation_steps=len(test_set.filenames))
+    history = classifier.fit_generator(training_set,
+                                       steps_per_epoch=len(training_set.filenames),
+                                       epochs=5,
+                                       validation_data=test_set,
+                                       validation_steps=len(test_set.filenames))
+    #
+    # if not os.path.isdir(trained_model_folder_name):
+    #     os.mkdir(trained_model_folder_name)
+    # classifier.save(os.path.join(trained_model_folder_name, 'model_' + str(datetime.today() + '.h5')))
+    return history, classifier
 
-    if not os.path.isdir(trained_model_folder_name):
-        os.mkdir(trained_model_folder_name)
-    classifier.save(os.path.join(trained_model_folder_name, 'model_' + str(datetime.today())))
 
+on_videos_path = 'on_videos'
+not_on_videos_path = 'notOn_videos'
 if __name__ == '__main__':
-    on_videos = ['thumb_on_pointing.mp4', 'thumb_on_pointing_zehua.mp4']
-    not_videos = ['thumb_not_on_pointing.mp4', 'thumb_not_on_pointing_zehua.mp4']
-    main(isConvertFrames=True, isCreateTrainTest=True, on_videos=on_videos, not_videos=not_videos)
+    on_videos = os.listdir(on_videos_path)
+    not_videos = os.listdir(not_on_videos_path)
+
+    on_videos = list(map(lambda x: os.path.join(on_videos_path, x), on_videos))
+    not_videos = list(map(lambda x: os.path.join(not_on_videos_path, x), not_videos))
+
+    train_history, classifier = main(isConvertFrames=True, isCreateTrainTest=True, on_videos=on_videos, not_videos=not_videos)
