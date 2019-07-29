@@ -219,7 +219,7 @@ def main(isConvertFrames: bool, isCreateTrainTest: bool, on_videos=[], not_video
 
     history = classifier.fit_generator(training_set,
                                        steps_per_epoch=len(training_set.filenames),
-                                       epochs=3,
+                                       epochs=1,
                                        validation_data=test_set,
                                        validation_steps=len(test_set.filenames))
     #
