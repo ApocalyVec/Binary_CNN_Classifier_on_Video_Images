@@ -12,10 +12,8 @@ from keras_preprocessing.image import ImageDataGenerator
 from keras.utils import plot_model
 
 from PIL import Image
-import tensorflow
 import cv2
 import numpy as np
-import pydot
 import matplotlib.pyplot as plt
 
 # file related imports
@@ -186,8 +184,8 @@ def main(isConvertFrames: bool, isCreateTrainTest: bool, on_videos=[], not_video
         separate_train_test(not_frame_path, not_category_name, 0.2)
 
     # send training and test set to keras
-    train_datagen = ImageDataGenerator(horizontal_flip=True, rescale=1. / 255)  # flip the image for training
-    test_datagen = ImageDataGenerator(rescale=1. / 255)
+    train_datagen = ImageDataGenerator()  # No data augmentation applied
+    test_datagen = ImageDataGenerator()
 
     training_set = train_datagen.flow_from_directory(train_folder_name,
                                                      target_size=(128, 128),
@@ -221,7 +219,7 @@ def main(isConvertFrames: bool, isCreateTrainTest: bool, on_videos=[], not_video
 
     history = classifier.fit_generator(training_set,
                                        steps_per_epoch=len(training_set.filenames),
-                                       epochs=5,
+                                       epochs=3,
                                        validation_data=test_set,
                                        validation_steps=len(test_set.filenames))
     #
@@ -240,4 +238,4 @@ if __name__ == '__main__':
     on_videos = list(map(lambda x: os.path.join(on_videos_path, x), on_videos))
     not_videos = list(map(lambda x: os.path.join(not_on_videos_path, x), not_videos))
 
-    train_history, classifier = main(isConvertFrames=True, isCreateTrainTest=True, on_videos=on_videos, not_videos=not_videos)
+    train_history, classifier = main(isConvertFrames=False, isCreateTrainTest=False, on_videos=on_videos, not_videos=not_videos)
